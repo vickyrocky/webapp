@@ -29,7 +29,17 @@ node{
     }
     stage('Deploy:'){
         
+    withCredentials([usernamePassword(credentialsId: 'ansible', passwordVariable: 'pwd', usernameVariable: 'user')]) {
+      def remote = [:]
+      remote.name = 'ip-172-31-28-61.us-east-2.compute.internal'
+      remote.host = '18.118.6.133'
+      remote.user = "${user}"
+      remote.password = "${pwd}"
+      remote.allowAnyHosts = true
+      
+      sshCommand remote: remote, command: "ls -lrt"
     
+    }
         
     }
     
