@@ -1,0 +1,46 @@
+node{
+    
+    //properties([pipelineTriggers([githubPush()])])
+    stage('Checkout source code:'){
+        
+        git 'https://github.com/vickyrocky/webapp.git'
+    }
+    stage('Build:'){
+        def mavenHome=tool name: 'maven', type: 'maven'
+        sh "${mavenHome}/bin/mvn -B -DskipTests clean package"
+        
+    }
+    stage('Junit Test:'){
+        
+        def mavenHome=tool name: 'maven', type: 'maven'
+        sh "${mavenHome}/bin/mvn test"
+    }
+    stage('SonarQube analysis:'){
+        
+        def scannerHome =  tool name: 'scanner'
+        withSonarQubeEnv('sonarqube_test') {
+            sh "${scannerHome}/bin/sonar-scanner " +
+                "-Dsonar.projectKey=webapp " +
+                "-Dsonar.sources=. " +
+                "-Dsonar.java.binaries=. "
+                
+            
+        }
+    }
+    stage('Deploy:'){
+        
+    withCredentials([usernamePassword(credentialsId: 'ansible', passwordVariable: 'pwd', usernameVariable: 'user')]) {
+      def remote = [:]
+      remote.name = 'ip-172-31-28-61.us-east-2.compute.internal'
+      remote.host = '18.118.6.133'
+      remote.user = "${user}"
+      remote.password = "${pwd}"
+      remote.allowAnyHosts = true
+      
+      sshCommand remote: remote, command: "cd /home/ec2-user/demoplaybook/new && ansible-playbook sample.yml -i inventory"
+    
+    }
+        
+    }
+    
+}
